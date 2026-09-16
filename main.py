@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 import os
 from collections import Counter
+from sklearn.model_selection import train_test_split
 
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
@@ -38,7 +39,7 @@ def build_dataset(transients_root):
                 records.append(record)
     return records
 
-test = build_dataset(transients_root)
+transients = build_dataset(transients_root)
 print(len(test))
 class_counts = Counter()
 for record in test:
@@ -61,3 +62,11 @@ def build_non_transient_dataset(non_transient_root):
 
 non_transients = build_non_transient_dataset(non_transients_root)
 print(len(non_transients))
+
+
+manifest = transients + non_transients
+print(len(manifest))
+
+transient_count = sum(1 for record in manifest if record["is_transient"] == 1)
+non_transient_count = sum(1 for record in manifest if record["is_transient"] == 0)
+print(transient_count, non_transient_count)
