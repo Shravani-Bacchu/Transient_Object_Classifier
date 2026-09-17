@@ -99,7 +99,6 @@ manifest_val, manifest_test = train_test_split(
 print(len(manifest_train), len(manifest_val), len(manifest_test))
 
 
-
 def get_mean_image(filepath):
     images = load_object_images(filepath)
     mean_image = np.mean(images, axis=0)
@@ -108,4 +107,30 @@ def get_mean_image(filepath):
 mean_img = get_mean_image(filepath)
 print(mean_img.shape)
 
-def build_image_label
+def build_image_label_arrays(manifest_split):
+    images_list = []
+    labels_list = []
+    for i, record in enumerate(manifest_split):
+        mean_img = get_mean_image(record["filepath"])
+        images_list.append(mean_img)
+        labels_list.append(record["is_transient"])
+        if i % 500 == 0:
+            print(f"Processed {i}/{len(manifest_split)}")
+    images_list = np.array(images_list)
+    labels_list = np.array(labels_list)
+    return images_list, labels_list
+
+X_train, y_train = build_image_label_arrays(manifest_train)
+X_val, y_val = build_image_label_arrays(manifest_val)
+X_test, y_test = build_image_label_arrays(manifest_test)
+
+print(X_train.shape, y_train.shape)
+print(X_val.shape, y_val.shape)
+print(X_test.shape, y_test.shape)
+
+
+x_train = X_train.reshape(-1,64,64,1)
+x_val = X_val.reshape(-1,64,64,1)
+x_test = X_test.reshape(-1,64,64,1)
+
+
