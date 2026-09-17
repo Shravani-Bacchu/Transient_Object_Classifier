@@ -1,5 +1,6 @@
 from astropy.io import fits
 import numpy as np
+import pandas as pd
 from pathlib import Path
 import os
 from collections import Counter
@@ -96,3 +97,15 @@ manifest_val, manifest_test = train_test_split(
 )
 
 print(len(manifest_train), len(manifest_val), len(manifest_test))
+
+
+
+def get_mean_image(filepath):
+    images = load_object_images(filepath)
+    mean_image = np.mean(images, axis=0)
+    return mean_image
+
+mean_img = get_mean_image(filepath)
+print(mean_img.shape)
+
+def build_image_label
