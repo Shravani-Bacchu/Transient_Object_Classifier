@@ -40,9 +40,9 @@ def build_dataset(transients_root):
     return records
 
 transients = build_dataset(transients_root)
-print(len(test))
+print(len(transients))
 class_counts = Counter()
-for record in test:
+for record in transients:
     class_name = record["Class"]
     class_counts[class_name] +=1
 
@@ -61,12 +61,38 @@ def build_non_transient_dataset(non_transient_root):
 
 
 non_transients = build_non_transient_dataset(non_transients_root)
-print(len(non_transients))
-
-
 manifest = transients + non_transients
-print(len(manifest))
 
-transient_count = sum(1 for record in manifest if record["is_transient"] == 1)
-non_transient_count = sum(1 for record in manifest if record["is_transient"] == 0)
-print(transient_count, non_transient_count)
+
+transient_count = 0
+non_transient_count = 0
+for record in manifest:
+    if record["is_transient"] == 1:
+        transient_count +=1
+    else:
+        non_transient_count += 1
+print(transient_count,non_transient_count)
+
+labels = []
+for record in manifest:
+    labels.append(record["is_transient"])
+
+manifest_train, manifest_temp = train_test_split(
+    manifest,
+    test_size=0.3,
+    stratify=labels,
+    random_state=42,
+)
+
+labels_temp = []
+for record in manifest_temp:
+    labels_temp.append(record["is_transient"])
+
+manifest_val, manifest_test = train_test_split(
+    manifest_temp,
+    test_size=0.5,
+    stratify= labels_temp,
+    random_state=42
+)
+
+print(len(manifest_train), len(manifest_val), len(manifest_test))
