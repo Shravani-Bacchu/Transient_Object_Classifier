@@ -150,16 +150,23 @@ class TransientCNN(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
         self.pool = nn.MaxPool2d(kernel_size=2)
+        self.flatten = nn.Flatten()
 
     def forward(self,x):
         x = self.conv1(x)
         x = torch.relu(x)
         x = self.pool(x)
+
+        x = self.conv2(x)
+        x = torch.relu(x)
+        x = self.pool(x)
+        x = self.flatten(x)
         return x
 
 model = TransientCNN()
-sample = torch.from_numpy(x_train[:4]).permute(0, 3, 1, 2).float()  # NHWC -> NCHW
+sample = torch.from_numpy(x_train[:4]).permute(0, 3, 1, 2).float()
 out = model(sample)
 print(out.shape)
     
