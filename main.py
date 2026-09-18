@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset , DataLoader
+from sklearn.metrics import classification_report, confusion_matrix
 
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
@@ -210,7 +211,7 @@ print(xb.shape, yb.shape)
 
 xv, yv = next(iter(val_loader))
 print(xv.shape, yv.shape)
-epochs = 20
+epochs = 6
 
 for epoch in range(epochs):
     model.train()
@@ -228,3 +229,44 @@ for epoch in range(epochs):
 
     avg_train_loss = running_loss / len(train_loader)
     print(f"Epoch {epoch+1}/{epochs}  train loss: {avg_train_loss:.2f}")
+
+    model.eval()
+    val_loss = 0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in val_loader:
+            predictions = model(images)
+            loss = criterion(predictions, labels)
+            val_loss += loss.item()
+
+            predicted_classes = (predictions > 0.5).float()
+            correct += (predicted_classes == labels).sum().item()
+            total += labels.size(0)
+
+    avg_val_loss = val_loss / len(val_loader)
+    val_accuracy = correct / total
+
+    print(f"Epoch {epoch+1}/{epochs}  train loss: {avg_train_loss:.2f} "f"val loss: {avg_val_loss:.2f}  val acc: {val_accuracy:.2f}")
+
+
+X_test_t = torch.from_numpy(x_test).permute(0,3,1,2).float()
+y_test_t = torch.from_numpy(y_test).float().unsqueeze(1)
+
+test_dataset = TensorDataset(X_test_t, y_test_t)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+model.eval()
+all_preds = []
+all_labels = []
+
+with torch.no_grad():
+    for images, labels in test_loader:
+        predictions = model(images)
+        predicted_classes = (predictions > 0.5).float()
+        all_preds.append(predicted_classes)
+        all_labels.append(labels)
+
+all_preds = torch.cat(all_preds).numpy()
+all_labels = torch.cat(all_labels).numpy()
