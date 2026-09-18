@@ -270,3 +270,6 @@ with torch.no_grad():
 
 all_preds = torch.cat(all_preds).numpy()
 all_labels = torch.cat(all_labels).numpy()
+
+print(classification_report(all_labels, all_preds))
+print(confusion_matrix(all_labels, all_preds))
