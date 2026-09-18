@@ -5,10 +5,14 @@ from pathlib import Path
 import os
 from collections import Counter
 from sklearn.model_selection import train_test_split
+import torch
+import torch.nn as nn
 
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
 non_transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_non-transients/data/NON")
+cache_path = "arrays_cache.npz"
+
 
 #function that loads transient objects
 def load_object_images(filepath):
@@ -120,17 +124,42 @@ def build_image_label_arrays(manifest_split):
     labels_list = np.array(labels_list)
     return images_list, labels_list
 
-X_train, y_train = build_image_label_arrays(manifest_train)
-X_val, y_val = build_image_label_arrays(manifest_val)
-X_test, y_test = build_image_label_arrays(manifest_test)
+
+if os.path.exists(cache_path):
+    data = np.load(cache_path)
+    X_train, y_train = data["X_train"], data["y_train"]
+    X_val, y_val = data["X_val"], data["y_val"]
+    X_test, y_test = data["X_test"], data["y_test"]
+else:
+    X_train, y_train = build_image_label_arrays(manifest_train)
+    X_val, y_val = build_image_label_arrays(manifest_val)
+    X_test, y_test = build_image_label_arrays(manifest_test)
+    np.savez(cache_path, X_train=X_train, y_train=y_train,
+              X_val=X_val, y_val=y_val, X_test=X_test, y_test=y_test)
+
 
 print(X_train.shape, y_train.shape)
 print(X_val.shape, y_val.shape)
 print(X_test.shape, y_test.shape)
 
-
 x_train = X_train.reshape(-1,64,64,1)
 x_val = X_val.reshape(-1,64,64,1)
 x_test = X_test.reshape(-1,64,64,1)
 
+class TransientCNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+        self.pool = nn.MaxPool2d(kernel_size=2)
 
+    def forward(self,x):
+        x = self.conv1(x)
+        x = torch.relu(x)
+        x = self.pool(x)
+        return x
+
+model = TransientCNN()
+sample = torch.from_numpy(x_train[:4]).permute(0, 3, 1, 2).float()  # NHWC -> NCHW
+out = model(sample)
+print(out.shape)
+    
