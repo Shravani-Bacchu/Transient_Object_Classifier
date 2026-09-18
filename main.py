@@ -146,6 +146,16 @@ x_train = X_train.reshape(-1,64,64,1)
 x_val = X_val.reshape(-1,64,64,1)
 x_test = X_test.reshape(-1,64,64,1)
 
+train_mean = x_train.mean()
+train_std = x_train.std()
+
+x_train = (x_train - train_mean) /train_std
+x_val = (x_val - train_mean) / train_std
+x_test = (x_test - train_mean) / train_std
+
+print(x_train.min(),x_train.max(), x_train.mean(), x_train.std())
+
+
 class TransientCNN(nn.Module):
     def __init__(self):
         super().__init__()
@@ -153,6 +163,8 @@ class TransientCNN(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
         self.pool = nn.MaxPool2d(kernel_size=2)
         self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(in_features=12544, out_features=64)
+        self.fc2 = nn.Linear(in_features=64, out_features=1)
 
     def forward(self,x):
         x = self.conv1(x)
@@ -162,11 +174,17 @@ class TransientCNN(nn.Module):
         x = self.conv2(x)
         x = torch.relu(x)
         x = self.pool(x)
+
         x = self.flatten(x)
+        x = self.fc1(x)
+        x = torch.relu(x)
+        x = self.fc2(x)
+        x = torch.sigmoid(x)
         return x
 
 model = TransientCNN()
 sample = torch.from_numpy(x_train[:4]).permute(0, 3, 1, 2).float()
 out = model(sample)
 print(out.shape)
-    
+print(out) 
+print(x_train.min(), x_train.max(), x_train.mean())
