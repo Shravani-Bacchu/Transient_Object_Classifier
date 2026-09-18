@@ -7,6 +7,7 @@ from collections import Counter
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
+from torch.utils.data import TensorDataset , DataLoader
 
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
@@ -188,3 +189,42 @@ out = model(sample)
 print(out.shape)
 print(out) 
 print(x_train.min(), x_train.max(), x_train.mean())
+
+criterion = nn.BCELoss()
+optimiser = torch.optim.Adam(model.parameters(),lr=0.001)
+
+X_train_t = torch.from_numpy(x_train).permute(0, 3, 1, 2).float()
+y_train_t = torch.from_numpy(y_train).float().unsqueeze(1)
+
+X_val_t = torch.from_numpy(x_val).permute(0, 3, 1, 2).float()
+y_val_t = torch.from_numpy(y_val).float().unsqueeze(1)
+
+
+train_dataset = TensorDataset(X_train_t, y_train_t)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_dataset = TensorDataset(X_val_t, y_val_t)
+val_loader = DataLoader(val_dataset,batch_size=32, shuffle=False)
+
+xb, yb = next(iter(train_loader))
+print(xb.shape, yb.shape)
+
+xv, yv = next(iter(val_loader))
+print(xv.shape, yv.shape)
+epochs = 20
+
+for epoch in range(epochs):
+    model.train()
+    running_loss = 0.0
+
+    for images, labels in train_loader:
+        predictions = model(images)
+        loss = criterion(predictions, labels)
+
+        optimiser.zero_grad()    
+        loss.backward()          
+        optimiser.step()         
+
+        running_loss += loss.item()
+
+    avg_train_loss = running_loss / len(train_loader)
+    print(f"Epoch {epoch+1}/{epochs}  train loss: {avg_train_loss:.2f}")
