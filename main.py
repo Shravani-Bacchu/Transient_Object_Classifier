@@ -215,7 +215,7 @@ epochs = 6
 
 for epoch in range(epochs):
     model.train()
-    running_loss = 0.0
+    running_loss = 0
 
     for images, labels in train_loader:
         predictions = model(images)
@@ -372,4 +372,63 @@ class TransientClassCNN(nn.Module):
         x = torch.relu(x)
         x = self.fc2(x)
         return x
+
+model2 = TransientClassCNN(num_classes=5)
+sample2 = torch.from_numpy(x_train2[:4]).permute(0,3,1,2).float()
+out2 = model2(sample2)
+print(out2.shape)
+print(out2)
+
+criterion2 =  nn.CrossEntropyLoss()
+optimiser2 = torch.optim.Adam(model2.parameters(), lr=0.001)
+
+X_train2_t = torch.from_numpy(x_train2).permute(0,3,1,2).float()
+y_train2_t = torch.from_numpy(y_train2).long()
+
+X_val2_t = torch.from_numpy(x_val2).permute(0, 3, 1, 2).float()
+y_val2_t = torch.from_numpy(y_val2).long()
+
+train_dataset2 = TensorDataset(X_train2_t, y_train2_t)
+train_loader2 = DataLoader(train_dataset2, batch_size=32, shuffle=True)
+
+val_dataset2 = TensorDataset(X_val2_t, y_val2_t)
+val_loader2 = DataLoader(val_dataset2, batch_size=32, shuffle=False)
+
+
+epochs2 = 2
+for epoch in range(epochs2):
+    model2.train()
+    running_loss = 0
+    for images, labels in train_loader2:
+        predictions = model2(images)
+        loss = criterion2(predictions, labels)
+
+        optimiser2.zero_grad()
+        loss.backward()
+        optimiser2.step()
+
+        running_loss += loss.item()
+
+    avg_train_loss = running_loss / len(train_loader2)
+    print(f"Epoch {epoch+1}/{epochs2}  train loss: {avg_train_loss:.2f}")
+
+    model2.eval()
+    val_loss = 0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for images, labels in val_loader2:
+            predictions = model2(images)
+            loss = criterion2(predictions, labels)
+            val_loss += loss.item()
+
+            predicted_classes = torch.argmax(predictions, dim=1)
+            correct += (predicted_classes == labels).sum().item()
+            total += labels.size(0)
+
+    avg_val_loss = val_loss / len(val_loader2)
+    val_accuracy = correct / total
+
+    print(f"Epoch {epoch+1}/{epochs2}  train loss: {avg_train_loss:.2f} "f"val loss: {avg_val_loss:.2f}  val acc: {val_accuracy:.2f}")
 
