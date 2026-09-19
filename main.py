@@ -348,3 +348,28 @@ x_val2 = (x_val2 - train_mean2) / train_std2
 x_test2 = (x_test2 - train_mean2) / train_std2
 
 print(x_train2.min(), x_train2.max(), x_train2.mean(), x_train2.std())
+
+class TransientClassCNN(nn.Module):
+    def __init__(self, num_classes=5):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3)
+        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
+        self.pool = nn.MaxPool2d(kernel_size=2)
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(in_features=12544, out_features=64)
+        self.fc2 = nn.Linear(in_features=64, out_features=num_classes)
+    def forward(self,x):
+        x = self.conv1(x)
+        x = torch.relu(x)
+        x = self.pool(x)
+
+        x = self.conv2(x)
+        x = torch.relu(x)
+        x = self.pool(x)
+
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = torch.relu(x)
+        x = self.fc2(x)
+        return x
+

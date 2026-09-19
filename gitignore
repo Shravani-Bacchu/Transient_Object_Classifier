@@ -1,3 +1,6 @@
 TAO_non-transients/
 TAO_transients/
 venv/
+arrays_cache.npz
+arrays_cache_stage2.npz
+
