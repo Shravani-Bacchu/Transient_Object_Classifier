@@ -1,15 +1,4 @@
-from astropy.io import fits
-import numpy as np
-import pandas as pd
-from pathlib import Path
-import os
-from collections import Counter
-from sklearn.model_selection import train_test_split
-import torch
-import torch.nn as nn
-from torch.utils.data import TensorDataset , DataLoader
-from sklearn.metrics import classification_report, confusion_matrix
-
+from libraries import *
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
 non_transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_non-transients/data/NON")
@@ -431,4 +420,27 @@ for epoch in range(epochs2):
     val_accuracy = correct / total
 
     print(f"Epoch {epoch+1}/{epochs2}  train loss: {avg_train_loss:.2f} "f"val loss: {avg_val_loss:.2f}  val acc: {val_accuracy:.2f}")
+
+X_test2_t = torch.from_numpy(x_test2).permute(0, 3, 1, 2).float()
+y_test2_t = torch.from_numpy(y_test2).long()
+
+test_dataset2 = TensorDataset(X_test2_t, y_test2_t)
+test_loader2 = DataLoader(test_dataset2, batch_size=32, shuffle=False)
+
+model2.eval()
+all_preds2 = []
+all_labels2 = []
+
+with torch.no_grad():
+    for images, labels in test_loader2:
+        predictions = model2(images)
+        predicted_classes = torch.argmax(predictions, dim=1)
+        all_preds2.append(predicted_classes)
+        all_labels2.append(labels)
+
+all_preds2 = torch.cat(all_preds2).numpy()
+all_labels2 = torch.cat(all_labels2).numpy()
+
+print(classification_report(all_labels2, all_preds2, target_names=class_names))
+print(confusion_matrix(all_labels2, all_preds2))
 
