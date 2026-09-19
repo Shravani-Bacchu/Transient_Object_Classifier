@@ -273,3 +273,78 @@ all_labels = torch.cat(all_labels).numpy()
 
 print(classification_report(all_labels, all_preds))
 print(confusion_matrix(all_labels, all_preds))
+
+manifest_train_t = []
+for record in manifest_train:
+    if record["is_transient"] == 1:
+        manifest_train_t.append(record)
+
+manifest_val_t = []
+for record in manifest_val:
+    if record["is_transient"] == 1:
+        manifest_val_t.append(record)
+
+
+manifest_test_t = []
+for record in manifest_test:
+    if record["is_transient"] == 1:
+        manifest_test_t.append(record)
+
+print(len(manifest_train_t), len(manifest_val_t), len(manifest_test_t))
+
+class_names = ["AGN","BZ","CV","OTHER","SN"]
+class_to_idx = {}
+for i, name in enumerate(class_names):
+    class_to_idx[name] = i
+
+print(class_to_idx)
+
+def build_class_arrays(manifest_split, class_to_idx):
+    images_list = []
+    labels_list = []
+    for i, record in enumerate(manifest_split):
+        mean_img = get_mean_image(record["filepath"])
+        class_name = record["Class"]
+        class_index = class_to_idx[class_name]
+        images_list.append(mean_img)
+        labels_list.append(class_index)
+        if i % 500 == 0:
+            print(f"Processed {i}/{len(manifest_split)}")
+    images_list = np.array(images_list)
+    labels_list = np.array(labels_list)
+    return images_list, labels_list
+
+X_test_small, y_test_small = build_class_arrays(manifest_train_t[:20], class_to_idx)
+print(X_test_small.shape, y_test_small.shape)
+print(y_test_small)
+
+cache_path_stage2 = "arrays_cache_stage2.npz"
+
+if os.path.exists(cache_path_stage2):
+    data2 = np.load(cache_path_stage2)
+    X_train2, y_train2 = data2["X_train"], data2["y_train"]
+    X_val2, y_val2 = data2["X_val"], data2["y_val"]
+    X_test2, y_test2 = data2["X_test"], data2["y_test"]
+else:
+    X_train2, y_train2 = build_class_arrays(manifest_train_t, class_to_idx)
+    X_val2, y_val2 = build_class_arrays(manifest_val_t, class_to_idx)
+    X_test2, y_test2 = build_class_arrays(manifest_test_t, class_to_idx)
+    np.savez(cache_path_stage2, X_train=X_train2, y_train=y_train2,
+              X_val=X_val2, y_val=y_val2, X_test=X_test2, y_test=y_test2)
+
+print(X_train2.shape, y_train2.shape)
+print(X_val2.shape, y_val2.shape)
+print(X_test2.shape, y_test2.shape)
+
+x_train2 = X_train2.reshape(-1, 64, 64, 1)
+x_val2 = X_val2.reshape(-1, 64, 64, 1)
+x_test2 = X_test2.reshape(-1, 64, 64, 1)
+
+train_mean2 = x_train2.mean()
+train_std2 = x_train2.std()
+
+x_train2 = (x_train2 - train_mean2) / train_std2
+x_val2 = (x_val2 - train_mean2) / train_std2
+x_test2 = (x_test2 - train_mean2) / train_std2
+
+print(x_train2.min(), x_train2.max(), x_train2.mean(), x_train2.std())
