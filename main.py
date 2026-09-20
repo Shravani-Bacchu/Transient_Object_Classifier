@@ -1,4 +1,15 @@
-from libraries import *
+from astropy.io import fits
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import os
+from collections import Counter
+from sklearn.model_selection import train_test_split
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset , DataLoader
+from sklearn.metrics import classification_report, confusion_matrix
+
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
 non_transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_non-transients/data/NON")
@@ -444,3 +455,53 @@ all_labels2 = torch.cat(all_labels2).numpy()
 print(classification_report(all_labels2, all_preds2, target_names=class_names))
 print(confusion_matrix(all_labels2, all_preds2))
 
+def predict_stage1(record):
+    mean_img = get_mean_image(record["filepath"])
+    img = (mean_img - train_mean) / train_std
+    img_t = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).float()
+
+    model.eval()
+    with torch.no_grad():
+        prob = model(img_t)
+    return int(prob.item() > 0.5)
+
+stage1_predictions = []
+for record in manifest_test:
+    pred = predict_stage1(record)
+    stage1_predictions.append(pred)
+
+predicted_transients = []
+for record, pred in zip(manifest_test, stage1_predictions):
+    if pred == 1:
+        predicted_transients.append(record)
+
+print(len(predicted_transients))
+
+def predict_stage2(record):
+    mean_img = get_mean_image(record["filepath"])
+    img = (mean_img - train_mean2) / train_std2
+    img_t = torch.from_numpy(img).unsqueeze(0).unsqueeze(0).float()
+    
+    model2.eval()
+    with torch.no_grad():
+        scores = model2(img_t)
+    predicted_idx = torch.argmax(scores, dim=1).item()
+    return predicted_idx
+
+end_to_end_preds = []
+end_to_end_true = []
+
+for record in predicted_transients:
+    pred_class_idx = predict_stage2(record)
+    end_to_end_preds.append(pred_class_idx)
+    
+    if record["is_transient"] == 1:
+        true_class_idx = class_to_idx[record["Class"]]
+    else:
+        true_class_idx = -1 
+    end_to_end_true.append(true_class_idx)
+
+print(len(end_to_end_preds))
+
+missed_transients = 571 - 544
+print(f"Real transients missed entirely by Stage 1: {missed_transients}")
