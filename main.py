@@ -1,6 +1,7 @@
 from astropy.io import fits
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from pathlib import Path
 import os
 from collections import Counter
@@ -8,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset , DataLoader
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 filepath = "/home/bshra/Transient_Object_Classifier/TAO_transients/data/AGN/CSS071204:100029+071116.fits"
 transients_root = Path("/home/bshra/Transient_Object_Classifier/TAO_transients/data")
@@ -505,3 +506,21 @@ print(len(end_to_end_preds))
 
 missed_transients = 571 - 544
 print(f"Real transients missed entirely by Stage 1: {missed_transients}")
+
+# Stage 1
+cm1 = confusion_matrix(all_labels, all_preds)
+disp1 = ConfusionMatrixDisplay(confusion_matrix=cm1, display_labels=["Non-transient", "Transient"])
+disp1.plot(cmap="Blues")
+plt.title("Stage 1: Binary Classification")
+plt.savefig("stage1_confusion_matrix.png")
+plt.show()
+
+# Stage 2
+cm2 = confusion_matrix(all_labels2, all_preds2)
+disp2 = ConfusionMatrixDisplay(confusion_matrix=cm2, display_labels=class_names)
+disp2.plot(cmap="Blues")
+plt.title("Stage 2: Multiclass Classification")
+plt.savefig("stage2_confusion_matrix.png")
+plt.show()
+
+    
